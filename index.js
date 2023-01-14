@@ -3,6 +3,11 @@ const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
 const schedule = require('node-schedule');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+let message_id;
 
 const handler = async (query) => {
   const browser = await puppeteer.launch({
@@ -21,7 +26,20 @@ const handler = async (query) => {
     data.append('chat_id', Number(process.env.CHAT_ID));
     data.append('photo', fs.createReadStream('example.png'));
     data.append('caption', result);
-    await axios({
+    if (message_id) {
+      await axios({
+        method: 'post',
+        url: `https://api.telegram.org/bot${process.env.BOT_TOKEN}/deleteMessage`,
+        data: {
+          chat_id: Number(process.env.CHAT_ID),
+          message_id: message_id,
+        },
+      })
+          .catch((error) => {
+            console.log(error);
+          });
+    }
+    const res = await axios({
       method: 'post',
       url: `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendPhoto`,
       data: data,
@@ -29,6 +47,7 @@ const handler = async (query) => {
         .catch((error) => {
           console.log(error);
         });
+    message_id = res.data.result.message_id;
   } else {
     result = `No suspicious ads found. ${new Date().toLocaleString()}`
     console.log(result);
