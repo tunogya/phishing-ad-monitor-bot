@@ -18,6 +18,19 @@ const handler = async (query) => {
   await page.goto(`https://www.google.com/search?q=${query}`);
   const element = await page.$('#tads');
   let result;
+  if (message_id) {
+    await axios({
+      method: 'post',
+      url: `https://api.telegram.org/bot${process.env.BOT_TOKEN}/deleteMessage`,
+      data: {
+        chat_id: Number(process.env.CHAT_ID),
+        message_id: message_id,
+      },
+    })
+        .catch((error) => {
+          console.log(error);
+        });
+  }
   if (element) {
     result = `Suspicious ads found! Please check the screenshot. ${new Date().toLocaleString()}`
     await page.screenshot({path: 'example.png'});
@@ -26,19 +39,6 @@ const handler = async (query) => {
     data.append('chat_id', Number(process.env.CHAT_ID));
     data.append('photo', fs.createReadStream('example.png'));
     data.append('caption', result);
-    if (message_id) {
-      await axios({
-        method: 'post',
-        url: `https://api.telegram.org/bot${process.env.BOT_TOKEN}/deleteMessage`,
-        data: {
-          chat_id: Number(process.env.CHAT_ID),
-          message_id: message_id,
-        },
-      })
-          .catch((error) => {
-            console.log(error);
-          });
-    }
     const res = await axios({
       method: 'post',
       url: `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendPhoto`,
